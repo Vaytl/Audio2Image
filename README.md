@@ -250,8 +250,12 @@ Output: `src/Audio2Image.App/bin/Release/net10.0/win-x64/publish/Audio2Image.exe
 
 ### Selection Playback
 
-- **Time selection** — plays only the selected time range
-- **Frequency selection** — plays the entire track through a real-time bandpass filter isolating the selected frequency range
+Space/Play automatically detects the active selection and plays accordingly:
+
+- **Time selection** — plays only the selected time range (vertical strip)
+- **Frequency selection** — plays the entire track through a real-time IIR Butterworth bandpass filter (24 dB/octave) isolating the selected frequency range (horizontal strip)
+- **No selection** — plays the full track from the current position
+- **Loop** — press L with a time selection to loop it continuously
 
 ### Context Menu (Right-Click)
 

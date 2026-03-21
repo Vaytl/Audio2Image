@@ -374,6 +374,23 @@ public class SpectrogramViewerViewModel : ViewModelBase, IDisposable
     private void TogglePlayPause()
     {
         if (PlaybackDuration <= 0) return;
+
+        // If already playing, just pause/resume
+        if (IsPlaying)
+        {
+            _playback.TogglePlayPause();
+            IsPlaying = _playback.IsPlaying;
+            return;
+        }
+
+        // If there's a selection, play the selection (range or bandpass)
+        if (HasSelection)
+        {
+            PlaySelection();
+            return;
+        }
+
+        // Normal play
         _playback.TogglePlayPause();
         IsPlaying = _playback.IsPlaying;
     }
