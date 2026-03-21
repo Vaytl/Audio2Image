@@ -1,0 +1,144 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Audio2Image.App.ViewModels"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Audio2Image.App.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings"
+        Width="520" Height="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource PanelBackgroundBrush}">
+
+    <DockPanel Margin="24">
+        <!-- Header -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
+            <fi:SymbolIcon Symbol="Settings" FontSize="20"/>
+            <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold"/>
+        </StackPanel>
+
+        <!-- Validation status -->
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding StatusMessage}"
+                   Foreground="#FFCC4444" FontSize="12" Margin="0,8,0,0"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+        <!-- Buttons at bottom -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button Content="Reset Defaults" Command="{Binding ResetDefaultsCommand}" 
+                    FontSize="13" Padding="16,8" HorizontalAlignment="Left"
+                    Foreground="{DynamicResource DimTextBrush}" Background="Transparent"/>
+            <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="8,4"/>
+            <Button Content="Save" Command="{Binding SaveCommand}" 
+                    FontSize="14" Padding="24,8" 
+                    Classes="accent"/>
+            <Button Content="Cancel" Command="{Binding CancelCommand}" 
+                    FontSize="14" Padding="24,8"/>
+        </StackPanel>
+
+        <ScrollViewer>
+            <StackPanel Spacing="20">
+                <!-- Group: Analysis -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="ANALYSIS" FontSize="11" FontWeight="Bold" 
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,4"/>
+                    <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="14">
+                            <!-- FFT Size -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="FFT Size" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Higher values give more frequency detail but slower processing" 
+                                           FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                                <ComboBox ItemsSource="{Binding AvailableFftSizes}" 
+                                          SelectedIndex="{Binding SelectedFftSizeIndex}"
+                                          MinWidth="200" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}"/>
+
+                            <!-- Hop Size -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Hop Size" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Step between FFT windows. Smaller = more time resolution" 
+                                           FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                                <NumericUpDown Value="{Binding HopSize}" 
+                                               Minimum="128" Maximum="{Binding MaxHopSize}" Increment="128"
+                                               MinWidth="200" Margin="0,4,0,0"
+                                               FormatString="0"/>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}"/>
+
+                            <!-- Dynamic Range -->
+                            <StackPanel Spacing="4">
+                                <TextBlock FontWeight="SemiBold" FontSize="13">
+                                    <Run Text="Dynamic Range: "/>
+                                    <Run Text="{Binding DynamicRangeDb, StringFormat='{}{0:F0}'}"/>
+                                    <Run Text=" dB"/>
+                                </TextBlock>
+                                <TextBlock Text="Range of amplitudes displayed. Higher = more quiet detail visible" 
+                                           FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                                <Slider Value="{Binding DynamicRangeDb}" 
+                                        Minimum="40" Maximum="120" 
+                                        TickFrequency="10" IsSnapToTickEnabled="True"
+                                        MinWidth="300" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Group: Appearance -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="APPEARANCE" FontSize="11" FontWeight="Bold" 
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,4"/>
+                    <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="14">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Theme" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Application color theme"
+                                           FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                                <ComboBox ItemsSource="{Binding AvailableThemes}"
+                                          SelectedIndex="{Binding SelectedThemeIndex}"
+                                          MinWidth="200" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <Border Height="1" Background="{DynamicResource SeparatorBrush}"/>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="Colormap" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Text="Color palette for spectrogram rendering"
+                                           FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                                <ComboBox ItemsSource="{Binding AvailableColormaps}"
+                                          SelectedIndex="{Binding SelectedColormapIndex}"
+                                          MinWidth="200" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Group: Storage -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="STORAGE" FontSize="11" FontWeight="Bold" 
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,0,0,4"/>
+                    <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Library Path" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock Text="Directory where spectrogram images and database are stored" 
+                                       FontSize="11" Foreground="{DynamicResource DimTextBrush}"/>
+                            <DockPanel Margin="0,4,0,0">
+                                <Button DockPanel.Dock="Right" 
+                                        Command="{Binding BrowseLibraryCommand}"
+                                        Margin="8,0,0,0" Padding="12,6"
+                                        ToolTip.Tip="Browse for library folder">
+                                    <fi:SymbolIcon Symbol="FolderOpen" FontSize="14"/>
+                                </Button>
+                                <TextBox Text="{Binding LibraryPath}" IsReadOnly="True"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

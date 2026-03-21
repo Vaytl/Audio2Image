@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Audio2Image.App/Audio2Image.App.csproj" />
+    <Project Path="src/Audio2Image.Core/Audio2Image.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Audio2Image.App.Tests/Audio2Image.App.Tests.csproj" />
+    <Project Path="tests/Audio2Image.Core.Tests/Audio2Image.Core.Tests.csproj" />
+  </Folder>
+</Solution>

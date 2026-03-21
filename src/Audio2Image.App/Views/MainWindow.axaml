@@ -1,0 +1,671 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Audio2Image.App.ViewModels"
+        xmlns:models="using:Audio2Image.App.Models"
+        xmlns:coreModels="using:Audio2Image.Core.Models"
+        xmlns:views="using:Audio2Image.App.Views"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Audio2Image.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        x:Name="RootWindow"
+        Title="{Binding Title}"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
+
+    <!-- Window-level styles for gallery rows + virtualized ListBox -->
+    <Window.Styles>
+        <Style Selector="Border.gallery-row">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="Border.gallery-row:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+        </Style>
+        <Style Selector="Border.gallery-row Border.row-overlay">
+            <Setter Property="Opacity" Value="0.55"/>
+        </Style>
+        <Style Selector="Border.gallery-row:pointerover Border.row-overlay">
+            <Setter Property="Opacity" Value="0.35"/>
+        </Style>
+        <!-- Strip default ListBox selection styles for gallery -->
+        <Style Selector="ListBox.gallery-list">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBox.gallery-list ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ListBox.gallery-list ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.gallery-list ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.gallery-list ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.gallery-list ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <!-- Tag pill hover effect (brighten on hover via opacity) -->
+        <Style Selector="Button.tag-pill">
+            <Setter Property="Opacity" Value="0.85"/>
+        </Style>
+        <Style Selector="Button.tag-pill:pointerover">
+            <Setter Property="Opacity" Value="1.0"/>
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <!-- Main gallery view -->
+        <DockPanel Margin="8" IsVisible="{Binding !IsViewerOpen}">
+
+            <!-- Top toolbar -->
+            <Border DockPanel.Dock="Top" Background="{DynamicResource ToolbarBackgroundBrush}"
+                    CornerRadius="6" Padding="6" Margin="0,0,0,8">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <!-- Group 1: File actions -->
+                    <Button Command="{Binding SelectFolderCommand}"
+                            ToolTip.Tip="Open Folder (Ctrl+Shift+O)"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <fi:SymbolIcon Symbol="FolderOpen" FontSize="16"/>
+                            <TextBlock Text="Open Folder" VerticalAlignment="Center" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding SelectFilesCommand}"
+                            ToolTip.Tip="Open Files (Ctrl+O)"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <fi:SymbolIcon Symbol="DocumentAdd" FontSize="16"/>
+                            <TextBlock Text="Open Files" VerticalAlignment="Center" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Separator -->
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+
+                    <!-- Group 2: Processing -->
+                    <Button Content="Cancel"
+                            Command="{Binding CancelCommand}"
+                            IsVisible="{Binding IsProcessing}"
+                            ToolTip.Tip="Cancel processing"
+                            Padding="10,6" FontSize="13"/>
+
+                    <!-- Separator (only visible when processing) -->
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"
+                            IsVisible="{Binding IsProcessing}"/>
+
+                    <!-- Group 3: Sort + Settings -->
+                    <ComboBox SelectedIndex="{Binding SortIndex}"
+                              ToolTip.Tip="Sort order"
+                              MinWidth="130" FontSize="12">
+                        <ComboBoxItem Content="Name A-Z"/>
+                        <ComboBoxItem Content="Name Z-A"/>
+                        <ComboBoxItem Content="Date Added"/>
+                        <ComboBoxItem Content="Duration"/>
+                        <ComboBoxItem Content="Rating"/>
+                    </ComboBox>
+                    <Button Command="{Binding OpenSettingsCommand}"
+                            ToolTip.Tip="Settings (Ctrl+,)"
+                            Padding="10,6">
+                        <fi:SymbolIcon Symbol="Settings" FontSize="16"/>
+                    </Button>
+                    <Button Command="{Binding AboutCommand}"
+                            ToolTip.Tip="About Audio2Image"
+                            Padding="10,6">
+                        <fi:SymbolIcon Symbol="Info" FontSize="16"/>
+                    </Button>
+
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+
+                    <Button Command="{Binding TogglePlaylistPanelCommand}"
+                            ToolTip.Tip="Playlists"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <fi:SymbolIcon Symbol="List" FontSize="16"/>
+                            <TextBlock Text="Playlists" VerticalAlignment="Center" FontSize="13"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Search bar with icon -->
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,4">
+                <fi:SymbolIcon Symbol="Search" FontSize="14"
+                               Foreground="{DynamicResource DimTextBrush}" Margin="8,0"
+                               VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="SearchBox" Text="{Binding SearchText}"
+                         Watermark="Search library... (Ctrl+F)" FontSize="13"/>
+                <Button Grid.Column="2"
+                        IsVisible="{Binding HasSearchText}"
+                        Command="{Binding ClearSearchCommand}"
+                        ToolTip.Tip="Clear search"
+                        Padding="8,4" Background="Transparent"
+                        VerticalAlignment="Center">
+                    <fi:SymbolIcon Symbol="Dismiss" FontSize="12"/>
+                </Button>
+            </Grid>
+
+            <!-- Progress section -->
+            <StackPanel DockPanel.Dock="Top"
+                        IsVisible="{Binding IsProcessing}"
+                        Margin="0,0,0,4"
+                        Spacing="2">
+                <ProgressBar Minimum="0"
+                             Maximum="{Binding ProgressMaximum}"
+                             Value="{Binding ProgressValue}"
+                             IsIndeterminate="{Binding IsProgressIndeterminate}"
+                             Height="14"
+                             ShowProgressText="True" />
+                <TextBlock Text="{Binding CurrentFile}"
+                           FontSize="11"
+                           Opacity="0.7"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <!-- Status bar -->
+            <DockPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                <!-- Right: embedding status -->
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding EmbeddingStatusText}"
+                           FontSize="11" Opacity="0.6"
+                           IsVisible="{Binding IsComputingEmbeddings}"
+                           Margin="8,0,0,0"
+                           VerticalAlignment="Center"/>
+                <!-- Left: main status -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding StatusText}" FontSize="12" Opacity="0.8"/>
+                    <Button Content="Show errors" IsVisible="{Binding HasErrors}"
+                            Command="{Binding ShowErrorsCommand}" FontSize="11" Padding="8,2"
+                            Background="Transparent" Foreground="{DynamicResource AccentBrush}"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Multi-select batch action bar -->
+            <Border DockPanel.Dock="Top"
+                    IsVisible="{Binding IsMultiSelectMode}"
+                    Background="{DynamicResource ToolbarBackgroundBrush}"
+                    CornerRadius="6" Padding="8,4" Margin="0,0,0,4">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock FontSize="13" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PrimaryTextBrush}">
+                        <Run Text="{Binding SelectedCount}"/>
+                        <Run Text=" selected"/>
+                    </TextBlock>
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2"/>
+                    <Button Command="{Binding BatchAssignTagCommand}" Padding="8,4" FontSize="12"
+                            Background="Transparent" Foreground="{DynamicResource SecondaryTextBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <fi:SymbolIcon Symbol="Tag" FontSize="12"/>
+                            <TextBlock Text="Tag" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding BatchAddToPlaylistCommand}" Padding="8,4" FontSize="12"
+                            Background="Transparent" Foreground="{DynamicResource SecondaryTextBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <fi:SymbolIcon Symbol="List" FontSize="12"/>
+                            <TextBlock Text="Add to Playlist" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding BatchDeleteCommand}" Padding="8,4" FontSize="12"
+                            Background="Transparent" Foreground="#FF6666">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <fi:SymbolIcon Symbol="Delete" FontSize="12"/>
+                            <TextBlock Text="Delete" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,2"/>
+                    <Button Command="{Binding DeselectAllCommand}" Padding="8,4" FontSize="12"
+                            Background="Transparent" Foreground="{DynamicResource DimTextBrush}"
+                            Content="Deselect All"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Main content + optional playlist sidebar -->
+            <Grid ColumnDefinitions="*,Auto">
+            <!-- Gallery area (column 0) -->
+            <Grid Grid.Column="0">
+                <!-- Empty state panel (overlays, centered) -->
+                <StackPanel IsVisible="{Binding IsLibraryEmpty}"
+                            VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                    <fi:SymbolIcon Symbol="FolderOpen" FontSize="48"
+                                   Foreground="{DynamicResource DimTextBrush}"
+                                   HorizontalAlignment="Center"/>
+                    <TextBlock Text="Drop audio files here or click Open"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               FontSize="16" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Supports MP3, WAV and OGG"
+                               Foreground="{DynamicResource DimTextBrush}"
+                               FontSize="12" HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Gallery with optional similarity header -->
+                <DockPanel IsVisible="{Binding !IsLibraryEmpty}">
+                    <!-- Tag filter mode header -->
+                    <Border DockPanel.Dock="Top"
+                            IsVisible="{Binding IsTagFilterMode}"
+                            Background="{DynamicResource ToolbarBackgroundBrush}"
+                            CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                <Button Command="{Binding ExportPlaylistM3uCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Export as M3U">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Share" FontSize="14"/>
+                                        <TextBlock Text="M3U" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding SaveFilterAsPlaylistCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Save as Playlist">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Save" FontSize="14"/>
+                                        <TextBlock Text="Save as Playlist" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding BackToLibraryCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource AccentBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
+                                        <TextBlock Text="Back to library" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <fi:SymbolIcon Symbol="Tag" FontSize="14" Foreground="{DynamicResource TagTextBrush}"/>
+                                <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="Tag: "/>
+                                    <Run Text="{Binding TagFilterName}" FontWeight="SemiBold" Foreground="{DynamicResource TagTextBrush}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- User tag filter mode header -->
+                    <Border DockPanel.Dock="Top"
+                            IsVisible="{Binding IsUserTagFilterMode}"
+                            Background="{DynamicResource ToolbarBackgroundBrush}"
+                            CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right"
+                                    Command="{Binding BackToLibraryCommand}"
+                                    Padding="10,4" FontSize="12"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource AccentBrush}">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
+                                    <TextBlock Text="Back to library" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <fi:SymbolIcon Symbol="Tag" FontSize="14" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="User Tag: "/>
+                                    <Run Text="{Binding UserTagFilterName}" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Playlist mode header -->
+                    <Border DockPanel.Dock="Top"
+                            IsVisible="{Binding IsPlaylistMode}"
+                            Background="{DynamicResource ToolbarBackgroundBrush}"
+                            CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                <Button Command="{Binding ExportPlaylistM3uCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Export as M3U playlist">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Share" FontSize="14"/>
+                                        <TextBlock Text="Export M3U" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding BackToLibraryCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource AccentBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
+                                        <TextBlock Text="Back to library" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <fi:SymbolIcon Symbol="List" FontSize="14" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="Playlist: "/>
+                                    <Run Text="{Binding ActivePlaylistName}" FontWeight="SemiBold"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Similarity mode header -->
+                    <Border DockPanel.Dock="Top"
+                            IsVisible="{Binding IsSimilarityMode}"
+                            Background="{DynamicResource ToolbarBackgroundBrush}"
+                            CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                <Button Command="{Binding ExportPlaylistM3uCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Export as M3U">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Share" FontSize="14"/>
+                                        <TextBlock Text="M3U" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding SaveFilterAsPlaylistCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Save as Playlist">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Save" FontSize="14"/>
+                                        <TextBlock Text="Save as Playlist" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding BackToLibraryCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource AccentBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
+                                        <TextBlock Text="Back to library" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <fi:SymbolIcon Symbol="Search" FontSize="14" Foreground="{DynamicResource AccentBrush}"/>
+                                <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="Similar to: "/>
+                                    <Run Text="{Binding SimilaritySourceName}" FontWeight="SemiBold"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Gallery — virtualized row list -->
+                    <ListBox x:Name="GalleryList" Classes="gallery-list"
+                         ItemsSource="{Binding SpectrogramItems}"
+                         IsVisible="{Binding !IsLibraryEmpty}"
+                         SelectionMode="Single"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SpectrogramItem">
+                            <Border Background="Transparent"
+                                    Cursor="Hand"
+                                    ToolTip.Tip="{Binding AudioFilePath}">
+                                <!-- Row card: spectrogram as background, text overlay -->
+                                <Border Classes="gallery-row"
+                                        CornerRadius="6"
+                                        ClipToBounds="True"
+                                        Height="72"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="2">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuItem Header="Open in Viewer"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.OpenViewerCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="Open File Location"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.OpenFileLocationCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="Find Similar"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.FindSimilarCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="Rate">
+                                                <MenuItem Header="★☆☆☆☆  1" Command="{ReflectionBinding #RootWindow.DataContext.Rate1Command}" CommandParameter="{Binding}"/>
+                                                <MenuItem Header="★★☆☆☆  2" Command="{ReflectionBinding #RootWindow.DataContext.Rate2Command}" CommandParameter="{Binding}"/>
+                                                <MenuItem Header="★★★☆☆  3" Command="{ReflectionBinding #RootWindow.DataContext.Rate3Command}" CommandParameter="{Binding}"/>
+                                                <MenuItem Header="★★★★☆  4" Command="{ReflectionBinding #RootWindow.DataContext.Rate4Command}" CommandParameter="{Binding}"/>
+                                                <MenuItem Header="★★★★★  5" Command="{ReflectionBinding #RootWindow.DataContext.Rate5Command}" CommandParameter="{Binding}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Clear Rating" Command="{ReflectionBinding #RootWindow.DataContext.ClearRatingCommand}" CommandParameter="{Binding}"/>
+                                            </MenuItem>
+                                            <MenuItem Header="Assign Tag"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.AssignUserTagCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="Add to Playlist"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.AddToPlaylistCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <MenuItem Header="Remove from Playlist"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.RemoveFromPlaylistCommand}"
+                                                      CommandParameter="{Binding}"
+                                                      IsVisible="{ReflectionBinding #RootWindow.DataContext.IsPlaylistMode}"/>
+                                            <Separator/>
+                                            <MenuItem Header="Delete from Library"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.DeleteItemCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+                                    <Panel>
+                                        <!-- Layer 1: Spectrogram image as full background -->
+                                        <Image Source="{Binding Thumbnail}"
+                                               Stretch="Fill"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch" />
+
+                                        <!-- Layer 2: Dark gradient overlay for text readability -->
+                                        <Border Classes="row-overlay"
+                                                Background="#000000" />
+
+                                        <!-- Layer 2b: Selection highlight -->
+                                        <Border Background="#3344AAFF"
+                                                BorderBrush="#44AAFF"
+                                                BorderThickness="2"
+                                                CornerRadius="6"
+                                                IsVisible="{Binding IsSelected}"
+                                                IsHitTestVisible="False"/>
+
+                                        <!-- Layer 3: Text content -->
+                                        <Grid ColumnDefinitions="*,Auto" Margin="16,0">
+                                            <!-- Left: file info -->
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                                                <TextBlock Text="{Binding AudioFileName}"
+                                                           FontSize="15"
+                                                           FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="#FFFFFF"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <!-- Format badge -->
+                                                    <Border Background="{Binding FormatBadgeColor}"
+                                                            CornerRadius="3"
+                                                            Padding="6,1">
+                                                        <TextBlock Text="{Binding FormatText}"
+                                                                   FontSize="10"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#FFFFFF"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding MetadataShortText}"
+                                                               FontSize="11"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="#99AAAAAA"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding MetadataText}"/>
+                                                </StackPanel>
+                                                <!-- All tags (AI + user) in one row -->
+                                                <ItemsControl ItemsSource="{Binding AllTagDisplayItems}"
+                                                              IsVisible="{Binding HasAnyTags}"
+                                                              Margin="0,1,0,0">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" Spacing="4"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="models:TagDisplayItem">
+                                                            <Button Classes="tag-pill"
+                                                                    Command="{ReflectionBinding #RootWindow.DataContext.FilterByTagCommand}"
+                                                                    CommandParameter="{Binding Label}"
+                                                                    Padding="6,1"
+                                                                    Background="{Binding Background}"
+                                                                    BorderThickness="0"
+                                                                    CornerRadius="8"
+                                                                    Cursor="Hand"
+                                                                    ToolTip.Tip="Filter by this tag">
+                                                                <TextBlock Text="{Binding Label}"
+                                                                           FontSize="10"
+                                                                           Foreground="{Binding Foreground}"/>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+
+                                            <!-- Right: rating + similarity badge + duration -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                        Spacing="8" VerticalAlignment="Center" Margin="16,0,0,0">
+                                                <!-- Star rating -->
+                                                <TextBlock Text="{Binding RatingStars}"
+                                                           IsVisible="{Binding HasRating}"
+                                                           FontSize="13"
+                                                           Foreground="#FFC800"
+                                                           VerticalAlignment="Center"/>
+                                                <!-- Similarity badge -->
+                                                <Border Background="{DynamicResource AccentBrush}"
+                                                        CornerRadius="4" Padding="6,2"
+                                                        IsVisible="{Binding HasSimilarityScore}">
+                                                    <TextBlock Text="{Binding SimilarityText}"
+                                                               FontSize="12" FontWeight="Bold"
+                                                               Foreground="#FFFFFF"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding DurationText}"
+                                                           FontSize="15"
+                                                           FontFamily="Consolas"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource DurationTextBrush}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Panel>
+                                </Border>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Grid>
+
+            <!-- Playlist sidebar (column 1) -->
+            <Border Grid.Column="1"
+                    IsVisible="{Binding IsPlaylistPanelOpen}"
+                    Background="{DynamicResource ToolbarBackgroundBrush}"
+                    CornerRadius="6" Width="240" Margin="4,0,0,0" Padding="8">
+                <DockPanel>
+                    <!-- Header -->
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding CreatePlaylistCommand}"
+                                ToolTip.Tip="New Playlist"
+                                Padding="6,4" Background="Transparent">
+                            <fi:SymbolIcon Symbol="Add" FontSize="16" Foreground="{DynamicResource AccentBrush}"/>
+                        </Button>
+                        <TextBlock Text="Playlists" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- Playlist list -->
+                    <ListBox ItemsSource="{Binding Playlists}"
+                             SelectedItem="{Binding SelectedPlaylist}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="coreModels:Playlist">
+                                <Border Padding="6,4" CornerRadius="4"
+                                        Background="Transparent"
+                                        Cursor="Hand">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuItem Header="Rename"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.RenamePlaylistCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                            <Separator/>
+                                            <MenuItem Header="Delete"
+                                                      Command="{ReflectionBinding #RootWindow.DataContext.DeletePlaylistCommand}"
+                                                      CommandParameter="{Binding}"/>
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+            </Grid>
+        </DockPanel>
+
+        <!-- Drop overlay -->
+        <Border IsVisible="{Binding IsDropTargetActive}"
+                Background="{DynamicResource DropOverlayBrush}"
+                BorderBrush="{DynamicResource DropBorderBrush}" BorderThickness="3"
+                CornerRadius="12" ZIndex="100"
+                IsHitTestVisible="False">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                <fi:SymbolIcon Symbol="Add" FontSize="48"
+                               Foreground="{DynamicResource DropBorderBrush}"
+                               HorizontalAlignment="Center"/>
+                <TextBlock Text="Drop audio files or folder here" FontSize="18"
+                           Foreground="{DynamicResource PrimaryTextBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Keyboard shortcuts help overlay (F1) -->
+        <Border x:Name="ShortcutsOverlay" IsVisible="False" Background="#DD111111" ZIndex="150"
+                CornerRadius="8" Padding="20"
+                IsHitTestVisible="True">
+            <ScrollViewer>
+                <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400">
+                    <TextBlock Text="Keyboard Shortcuts" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextBrush}" HorizontalAlignment="Center"/>
+                    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl+O" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Open files" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+Shift+O" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Open folder" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+F" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Focus search" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl+," Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Settings" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="F5" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Refresh library" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Delete" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Delete selected item" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="F1" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Toggle this help" Foreground="{DynamicResource DimTextBrush}"/>
+                    </Grid>
+                    <TextBlock Text="Press F1 to close" FontSize="11" Foreground="{DynamicResource DimTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Spectrogram viewer overlay -->
+        <views:SpectrogramViewer DataContext="{Binding ViewerVm}"
+                                 IsVisible="{ReflectionBinding #RootWindow.DataContext.IsViewerOpen}" />
+    </Panel>
+</Window>

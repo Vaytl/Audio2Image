@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fi="using:FluentIcons.Avalonia"
+        x:Class="Audio2Image.App.Views.AboutWindow"
+        Title="About Audio2Image"
+        Width="440" Height="460"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#0D0D0D">
+
+    <DockPanel Margin="32">
+        <!-- Close button at bottom -->
+        <Button DockPanel.Dock="Bottom"
+                Content="Close"
+                HorizontalAlignment="Center"
+                Padding="32,8"
+                FontSize="13"
+                Margin="0,16,0,0"
+                Click="OnCloseClick"/>
+
+        <!-- Content -->
+        <StackPanel VerticalAlignment="Center" Spacing="14">
+            <!-- App icon (PNG) -->
+            <Image Source="/app-icon.png"
+                   Width="72" Height="72"
+                   HorizontalAlignment="Center"
+                   RenderOptions.BitmapInterpolationMode="HighQuality"/>
+
+            <!-- App name -->
+            <TextBlock Text="Audio2Image"
+                       FontSize="24" FontWeight="Bold"
+                       Foreground="#FFFFFF"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Version -->
+            <TextBlock x:Name="VersionText"
+                       FontSize="13"
+                       Foreground="#AAAAAA"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Description -->
+            <TextBlock Text="Batch audio-to-spectrogram converter with AI-powered similarity search"
+                       FontSize="12"
+                       Foreground="#888888"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       MaxWidth="340"/>
+
+            <!-- Author -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="6">
+                <TextBlock Text="Author:"
+                           FontSize="12" Foreground="#888888"
+                           VerticalAlignment="Center"/>
+                <TextBlock Text="Vitalii Hrytsenko"
+                           FontSize="12" FontWeight="SemiBold"
+                           Foreground="#CCCCCC"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- GitHub link -->
+            <Button x:Name="GitHubButton"
+                    HorizontalAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Padding="8,4"
+                    Click="OnGitHubClick">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <fi:SymbolIcon Symbol="Globe" FontSize="14" Foreground="#6CA4F0"/>
+                    <TextBlock Text="github.com/Vaytl"
+                               FontSize="12"
+                               Foreground="#6CA4F0"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Tech stack -->
+            <Border Background="#1A1A2E" CornerRadius="6" Padding="16,10"
+                    HorizontalAlignment="Center">
+                <TextBlock Text=".NET 10  |  Avalonia UI  |  NAudio  |  SkiaSharp  |  ONNX Runtime"
+                           FontSize="10"
+                           Foreground="#666666"
+                           HorizontalAlignment="Center"/>
+            </Border>
+
+            <!-- Copyright -->
+            <TextBlock x:Name="CopyrightText"
+                       FontSize="11"
+                       Foreground="#555555"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </DockPanel>
+</Window>

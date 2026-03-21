@@ -1,0 +1,55 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Audio2Image.App.App">
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- Dark theme -->
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#0D0D0D" />
+                    <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#1A1A2E" />
+                    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1E1E2E" />
+                    <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#16161E" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#FF6B35" />
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF8855" />
+                    <SolidColorBrush x:Key="CursorBrush" Color="#FFC800" />
+                    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#AAAAAA" />
+                    <SolidColorBrush x:Key="DimTextBrush" Color="#666666" />
+                    <SolidColorBrush x:Key="TimeDisplayBrush" Color="#44CCFF" />
+                    <SolidColorBrush x:Key="SeparatorBrush" Color="#333333" />
+                    <SolidColorBrush x:Key="DropOverlayBrush" Color="#CC0D0D0D" />
+                    <SolidColorBrush x:Key="DropBorderBrush" Color="#FF6B35" />
+                    <SolidColorBrush x:Key="RowHoverBrush" Color="#1E1E30" />
+                    <SolidColorBrush x:Key="DurationTextBrush" Color="#CCDDAA" />
+                    <SolidColorBrush x:Key="TagTextBrush" Color="#DDCCAA" />
+                </ResourceDictionary>
+
+                <!-- Light theme -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#F0F0F5" />
+                    <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#E0E0EC" />
+                    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#EAEAF0" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#E05A2A" />
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF6B35" />
+                    <SolidColorBrush x:Key="CursorBrush" Color="#D4A800" />
+                    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1A1A1A" />
+                    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#555555" />
+                    <SolidColorBrush x:Key="DimTextBrush" Color="#888888" />
+                    <SolidColorBrush x:Key="TimeDisplayBrush" Color="#0088BB" />
+                    <SolidColorBrush x:Key="SeparatorBrush" Color="#CCCCCC" />
+                    <SolidColorBrush x:Key="DropOverlayBrush" Color="#CCF0F0F5" />
+                    <SolidColorBrush x:Key="DropBorderBrush" Color="#E05A2A" />
+                    <SolidColorBrush x:Key="RowHoverBrush" Color="#E8E8F0" />
+                    <SolidColorBrush x:Key="DurationTextBrush" Color="#557722" />
+                    <SolidColorBrush x:Key="TagTextBrush" Color="#886644" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

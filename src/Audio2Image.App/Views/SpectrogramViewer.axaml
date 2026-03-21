@@ -1,0 +1,338 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Audio2Image.App.ViewModels"
+             xmlns:fi="using:FluentIcons.Avalonia"
+             x:Class="Audio2Image.App.Views.SpectrogramViewer"
+             x:DataType="vm:SpectrogramViewerViewModel"
+             Background="{DynamicResource PanelBackgroundBrush}"
+             Focusable="True">
+
+    <Panel>
+        <DockPanel>
+            <!-- Top bar: navigation + selection mode + zoom controls -->
+            <Border DockPanel.Dock="Top" Background="{DynamicResource ToolbarBackgroundBrush}" Padding="8">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                        <!-- Selection mode toggle buttons -->
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <ToggleButton x:Name="TimeSelBtn" IsChecked="True"
+                                      Padding="6,4" FontSize="12" MinWidth="28"
+                                      ToolTip.Tip="Time Selection Mode"
+                                      HorizontalContentAlignment="Center">
+                            <!-- Vertical bars icon for time selection -->
+                            <Panel Width="16" Height="14">
+                                <Border Width="3" Height="14" Background="#6CF" HorizontalAlignment="Left"/>
+                                <Border Width="3" Height="14" Background="#6CF" HorizontalAlignment="Right"/>
+                            </Panel>
+                        </ToggleButton>
+                        <ToggleButton x:Name="FreqSelBtn"
+                                      Padding="6,4" FontSize="12" MinWidth="28"
+                                      ToolTip.Tip="Frequency Selection Mode"
+                                      HorizontalContentAlignment="Center">
+                            <!-- Horizontal bars icon for freq selection -->
+                            <Panel Width="16" Height="14">
+                                <Border Width="16" Height="3" Background="#6CF" VerticalAlignment="Top"/>
+                                <Border Width="16" Height="3" Background="#6CF" VerticalAlignment="Bottom"/>
+                            </Panel>
+                        </ToggleButton>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <Button Command="{Binding ZoomOutCommand}"
+                                Padding="8,4" FontSize="14" FontWeight="Bold"
+                                MinWidth="30" HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Zoom Out (-)">
+                            <fi:SymbolIcon Symbol="ZoomOut" FontSize="16"/>
+                        </Button>
+                        <TextBlock Text="{Binding ZoomText}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12"
+                                   MinWidth="48" TextAlignment="Center"/>
+                        <Button Command="{Binding ZoomInCommand}"
+                                Padding="8,4" FontSize="14" FontWeight="Bold"
+                                MinWidth="30" HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Zoom In (+)">
+                            <fi:SymbolIcon Symbol="ZoomIn" FontSize="16"/>
+                        </Button>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <Button Content="Fit"
+                                Command="{Binding FitToWindowCommand}"
+                                Padding="12,4" FontSize="12"
+                                ToolTip.Tip="Fit to Window (F)"/>
+                        <Button Content="1:1"
+                                Command="{Binding ResetZoomCommand}"
+                                Padding="12,4" FontSize="12"
+                                ToolTip.Tip="Actual Size (1)"/>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <Button Command="{Binding CloseCommand}"
+                                Padding="12,4" FontSize="12"
+                                ToolTip.Tip="Close Viewer (Esc)">
+                            <fi:SymbolIcon Symbol="Dismiss" FontSize="16"/>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Command="{Binding PrevCommand}"
+                                Padding="10,4" FontSize="14"
+                                ToolTip.Tip="Previous (Left Arrow)">
+                            <fi:SymbolIcon Symbol="Previous" FontSize="16"/>
+                        </Button>
+                        <Button Command="{Binding NextCommand}"
+                                Padding="10,4" FontSize="14"
+                                ToolTip.Tip="Next (Right Arrow)">
+                            <fi:SymbolIcon Symbol="Next" FontSize="16"/>
+                        </Button>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <TextBlock Text="{Binding FileName}"
+                                   FontSize="14" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Margin="6,0,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Bottom transport bar -->
+            <Border DockPanel.Dock="Bottom" Background="{DynamicResource ToolbarBackgroundBrush}" Padding="8,6">
+                <DockPanel>
+                    <!-- Right side: cursor info + volume -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4"
+                                VerticalAlignment="Center" Margin="8,0,0,0">
+                        <!-- Cursor info bar -->
+                        <Border Background="{DynamicResource SurfaceBackgroundBrush}" CornerRadius="3" Padding="6,2" Margin="8,0,0,0"
+                                IsVisible="{Binding CursorTimeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                                       FontFamily="Consolas,Courier New,monospace">
+                                <Run Text="{Binding CursorTimeText}"/>
+                                <Run Text=" | "/>
+                                <Run Text="{Binding CursorFreqText}"/>
+                            </TextBlock>
+                        </Border>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="6,2"/>
+                        <fi:SymbolIcon Symbol="Speaker1" FontSize="14" Foreground="{DynamicResource DimTextBrush}" Margin="0,0,4,0"/>
+                        <Slider x:Name="VolumeSlider"
+                                Minimum="0" Maximum="1"
+                                Value="{Binding Volume}"
+                                Width="80" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Left side: play controls -->
+                    <StackPanel Orientation="Horizontal" Spacing="4"
+                                VerticalAlignment="Center" DockPanel.Dock="Left">
+                        <Button Command="{Binding PlayPauseCommand}"
+                                Padding="10,4" FontSize="18" MinWidth="40" MinHeight="32"
+                                HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Play / Pause (Space)">
+                            <Button.Content>
+                                <Panel>
+                                    <fi:SymbolIcon Symbol="Play" FontSize="18" IsVisible="{Binding !IsPlaying}"/>
+                                    <fi:SymbolIcon Symbol="Pause" FontSize="18" IsVisible="{Binding IsPlaying}"/>
+                                </Panel>
+                            </Button.Content>
+                        </Button>
+                        <Button Command="{Binding StopCommand}"
+                                Padding="10,4" FontSize="18" MinWidth="40" MinHeight="32"
+                                HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Stop">
+                            <fi:SymbolIcon Symbol="Stop" FontSize="18"/>
+                        </Button>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+                        <!-- Loop toggle -->
+                        <Button Command="{Binding ToggleLoopCommand}"
+                                Padding="10,4" FontSize="18" MinWidth="40" MinHeight="32"
+                                HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Toggle Loop (L)">
+                            <Panel>
+                                <fi:SymbolIcon Symbol="ArrowRepeatAll" FontSize="18"
+                                              IsVisible="{Binding !IsLooping}"/>
+                                <fi:SymbolIcon Symbol="ArrowRepeatAll" FontSize="18"
+                                              Foreground="#44CC44"
+                                              IsVisible="{Binding IsLooping}"/>
+                            </Panel>
+                        </Button>
+                        <!-- Find loop points -->
+                        <Button Command="{Binding FindLoopPointsCommand}"
+                                Padding="10,4" FontSize="14" MinWidth="40" MinHeight="32"
+                                HorizontalContentAlignment="Center"
+                                IsEnabled="{Binding !IsSearchingLoops}"
+                                ToolTip.Tip="Find optimal loop points in selection (or auto-detect)">
+                            <Panel>
+                                <fi:SymbolIcon Symbol="MusicNote2" FontSize="16"
+                                              IsVisible="{Binding !IsSearchingLoops}"/>
+                                <fi:SymbolIcon Symbol="ArrowSync" FontSize="16"
+                                              Foreground="{DynamicResource AccentBrush}"
+                                              IsVisible="{Binding IsSearchingLoops}"/>
+                            </Panel>
+                        </Button>
+                        <!-- Export selection -->
+                        <Button Command="{Binding ExportSelectionCommand}"
+                                Padding="10,4" FontSize="14" MinWidth="40" MinHeight="32"
+                                HorizontalContentAlignment="Center"
+                                ToolTip.Tip="Export selection as WAV">
+                            <fi:SymbolIcon Symbol="Save" FontSize="16"/>
+                        </Button>
+                        <Border Width="1" Background="{DynamicResource SeparatorBrush}" Margin="4,4"/>
+
+                        <!-- Time display: h:mm:ss.fff format -->
+                        <Border Background="{DynamicResource SurfaceBackgroundBrush}" CornerRadius="3" Padding="8,3" Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                <TextBlock Text="h:ms.ms" FontSize="9" Foreground="#556"
+                                           VerticalAlignment="Top" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding PositionText}"
+                                           FontSize="15" Foreground="{DynamicResource TimeDisplayBrush}"
+                                           FontFamily="Consolas,Courier New,monospace"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="/" FontSize="12" Foreground="{DynamicResource DimTextBrush}"
+                                   VerticalAlignment="Center" Margin="4,0"/>
+                        <TextBlock Text="{Binding DurationText}"
+                                   FontSize="12" Foreground="{DynamicResource DimTextBrush}"
+                                   FontFamily="Consolas,Courier New,monospace"
+                                   VerticalAlignment="Center"/>
+
+                        <TextBlock Text="{Binding SelectionInfo}"
+                                   FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"
+                                   IsVisible="{Binding HasSelection}"/>
+                        <TextBlock Text="{Binding LoopInfo}"
+                                   FontSize="11" Foreground="#44CC44"
+                                   VerticalAlignment="Center" Margin="8,0,0,0"
+                                   IsVisible="{Binding IsLooping}"/>
+                    </StackPanel>
+
+                    <!-- Seek bar -->
+                    <Slider x:Name="SeekBar"
+                            Minimum="0"
+                            Maximum="{Binding PlaybackDuration}"
+                            Value="{Binding PlaybackPosition}"
+                            VerticalAlignment="Center" Margin="8,0"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Main content area: Grid with freq scales (left+right), spectrogram, time scale -->
+            <Grid ColumnDefinitions="55,*,55" RowDefinitions="*,25">
+                <!-- Frequency scale LEFT: FIXED (does not scroll or zoom) -->
+                <Canvas x:Name="FreqScaleCanvas"
+                        Grid.Row="0" Grid.Column="0"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        ClipToBounds="True"/>
+
+                <!-- Frequency scale RIGHT: mirror of left -->
+                <Canvas x:Name="RightFreqScaleCanvas"
+                        Grid.Row="0" Grid.Column="2"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        ClipToBounds="True"/>
+
+                <!-- Corner filler (bottom-left) -->
+                <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}"/>
+
+                <!-- Corner filler (bottom-right) -->
+                <Border Grid.Row="1" Grid.Column="2" Background="{DynamicResource PanelBackgroundBrush}"/>
+
+                <!-- Time scale: synced with horizontal scroll only -->
+                <Canvas x:Name="TimeScaleCanvas"
+                        Grid.Row="1" Grid.Column="1"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        ClipToBounds="True"/>
+
+                <!-- Scrollable spectrogram (horizontal scroll + zoom, vertical scroll but no zoom) -->
+                <ScrollViewer x:Name="ImageScroller"
+                              Grid.Row="0" Grid.Column="1"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
+                              Background="{DynamicResource PanelBackgroundBrush}">
+                    <Panel x:Name="SpectrogramPanel">
+                        <Image x:Name="SpectrogramImage"
+                               Source="{Binding FullImage}"
+                               Width="{Binding ImageWidth}"
+                               Height="{Binding ImageHeight}"
+                               Stretch="Fill"
+                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
+
+                        <!-- Selection overlay: drawn on Canvas for RX-style dashed borders -->
+                        <Canvas x:Name="SelectionCanvas"
+                                Width="{Binding ImageWidth}"
+                                Height="{Binding ImageHeight}"
+                                IsHitTestVisible="False"/>
+
+                        <!-- Loop markers overlay (green dashed lines) -->
+                        <Canvas x:Name="LoopMarkerCanvas"
+                                Width="{Binding ImageWidth}"
+                                Height="{Binding ImageHeight}"
+                                IsHitTestVisible="False"
+                                IsVisible="{Binding ShowLoopMarkers}"/>
+
+                        <!-- Playback cursor + teardrop overlay (inside ScrollViewer, scrolls with image) -->
+                        <Canvas x:Name="CursorCanvas"
+                                Width="{Binding ImageWidth}"
+                                Height="{Binding ImageHeight}"
+                                IsHitTestVisible="False"
+                                IsVisible="{Binding ShowCursor}"
+                                ClipToBounds="False"/>
+                    </Panel>
+                </ScrollViewer>
+            </Grid>
+        </DockPanel>
+
+        <!-- Keyboard shortcuts overlay (F1/?) -->
+        <Border x:Name="ShortcutsOverlay" IsVisible="False" Background="#DD111111" ZIndex="200"
+                CornerRadius="8" Padding="20">
+            <ScrollViewer>
+                <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="500">
+                    <TextBlock Text="Keyboard Shortcuts" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryTextBrush}" HorizontalAlignment="Center"/>
+
+                    <!-- Navigation -->
+                    <TextBlock Text="Navigation" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" FontSize="14"/>
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Left / Right" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Previous / Next spectrogram" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Home / End" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Scroll to start / end" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Esc" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Clear selection / Close" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="F1 / ?" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Toggle this help" Foreground="{DynamicResource DimTextBrush}"/>
+                    </Grid>
+
+                    <!-- Zoom -->
+                    <TextBlock Text="Zoom" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" FontSize="14"/>
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Scroll Wheel" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Zoom in / out" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="+ / -" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Zoom in / out (keyboard)" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="F" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Fit to window" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="0 / 1" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Actual size (1:1)" Foreground="{DynamicResource DimTextBrush}"/>
+                    </Grid>
+
+                    <!-- Playback -->
+                    <TextBlock Text="Playback" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" FontSize="14"/>
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Space" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Play / Pause (or play selection)" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Click" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Seek to position" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl+Click" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Pan / drag view" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="L" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Toggle loop on selection" Foreground="{DynamicResource DimTextBrush}"/>
+                    </Grid>
+
+                    <!-- Selection -->
+                    <TextBlock Text="Selection" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" FontSize="14"/>
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Drag" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Create time / frequency selection" Foreground="{DynamicResource DimTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Delete" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Clear selection" Foreground="{DynamicResource DimTextBrush}"/>
+                    </Grid>
+
+                    <TextBlock Text="Press F1 or ? to close" FontSize="11" Foreground="{DynamicResource DimTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Panel>
+</UserControl>
