@@ -25,6 +25,7 @@ public partial class SpectrogramViewer : UserControl
     private IDisposable? _selectionSubscription;
     private IDisposable? _zoomSubscription;
     private IDisposable? _loopSubscription;
+    private IDisposable? _boundsSubscription;
 
     // Selection drag state
     private bool _isSelecting;
@@ -124,9 +125,8 @@ public partial class SpectrogramViewer : UserControl
         // but ViewerVm is assigned later when user opens a spectrogram)
         SubscribeToOverlays();
         UpdateViewportSize();
-        DrawFrequencyScale();
-        DrawRightFrequencyScale();
-        DrawTimeScale();
+        // Don't draw scales here — layout is not ready yet.
+        // Deferred Post below handles the first draw after layout completes.
 
         // Clear old overlays and reset cached elements
         SelectionCanvas.Children.Clear();
@@ -172,6 +172,8 @@ public partial class SpectrogramViewer : UserControl
         _zoomSubscription = null;
         _loopSubscription?.Dispose();
         _loopSubscription = null;
+        _boundsSubscription?.Dispose();
+        _boundsSubscription = null;
         ImageScroller.ScrollChanged -= OnScrollChanged;
         SeekBar.RemoveHandler(Avalonia.Input.InputElement.PointerPressedEvent, OnSeekBarPressed);
         SeekBar.RemoveHandler(Avalonia.Input.InputElement.PointerReleasedEvent, OnSeekBarReleased);
@@ -195,6 +197,7 @@ public partial class SpectrogramViewer : UserControl
         _selectionSubscription?.Dispose();
         _zoomSubscription?.Dispose();
         _loopSubscription?.Dispose();
+        _boundsSubscription?.Dispose();
 
         if (DataContext is SpectrogramViewerViewModel vm)
         {
@@ -213,6 +216,14 @@ public partial class SpectrogramViewer : UserControl
                     DrawFrequencyScale();
                     DrawRightFrequencyScale();
                     DrawTimeScale();
+                });
+
+            // Redraw frequency scales when image bounds change (initial layout after async load)
+            _boundsSubscription = SpectrogramImage.GetObservable(BoundsProperty)
+                .Subscribe(_ =>
+                {
+                    DrawFrequencyScale();
+                    DrawRightFrequencyScale();
                 });
 
             // Loop markers
@@ -268,27 +279,18 @@ public partial class SpectrogramViewer : UserControl
         double maxFreq = Math.Min(sampleRate / 2.0, MelScale.MaxFreqHz);
         if (maxFreq <= MelScale.MinFreqHz) return;
 
-        double imgH = SpectrogramImage.Bounds.Height;
-        if (imgH <= 0) imgH = vm.ImageHeight;
-        if (imgH <= 0) return;
+        // Use TranslatePoint to find the exact position of the spectrogram image
+        // relative to this canvas — handles centering, scroll offset, scrollbar height.
+        double imageH = SpectrogramImage.Bounds.Height;
+        if (imageH <= 0) return;
 
-        var imgTopInCanvas = SpectrogramImage.TranslatePoint(new Point(0, 0), canvas);
-        var imgBotInCanvas = SpectrogramImage.TranslatePoint(new Point(0, imgH), canvas);
+        var imgTopPt = SpectrogramImage.TranslatePoint(new Point(0, 0), canvas);
+        var imgBotPt = SpectrogramImage.TranslatePoint(new Point(0, imageH), canvas);
+        if (imgTopPt == null || imgBotPt == null) return;
 
-        double imageTopY, imageBotY;
-        if (imgTopInCanvas.HasValue && imgBotInCanvas.HasValue)
-        {
-            imageTopY = imgTopInCanvas.Value.Y;
-            imageBotY = imgBotInCanvas.Value.Y;
-        }
-        else
-        {
-            imageTopY = -ImageScroller.Offset.Y;
-            imageBotY = imgH - ImageScroller.Offset.Y;
-        }
-
-        double visibleImgH = imageBotY - imageTopY;
-        if (visibleImgH <= 0) return;
+        double yTop = imgTopPt.Value.Y;
+        double displayHeight = imgBotPt.Value.Y - yTop;
+        if (displayHeight <= 0) return;
 
         foreach (var (hz, label) in FreqLabels)
         {
@@ -296,7 +298,7 @@ public partial class SpectrogramViewer : UserControl
 
             double normalizedY = MelScale.FreqToNormalizedY(hz, sampleRate);
             double pixelFraction = 1.0 - normalizedY;
-            double yPos = imageTopY + pixelFraction * visibleImgH;
+            double yPos = yTop + pixelFraction * displayHeight;
 
             if (yPos < -12 || yPos > canvasHeight + 12) continue;
 
