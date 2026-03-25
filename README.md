@@ -80,7 +80,41 @@ Desktop application for batch-converting audio files (MP3/WAV/OGG) into high-res
 
 ## Screenshots
 
-> *The application renders spectrograms in a warm orange/amber palette, with interactive frequency and time scales, playback cursor, selection overlays, star ratings, and tag pills — similar to iZotope RX 11.*
+### Gallery View
+
+![Gallery view](docs/screenshots/screenshot-gallery.png)
+
+*Main gallery — spectrogram thumbnails, format badges, AI tags, star ratings, and metadata.*
+
+### Spectrogram Viewer
+
+![Viewer](docs/screenshots/screenshot-viewer.png)
+
+*Interactive viewer with mel-scale frequency axes, playback cursor, transport controls, and zoom.*
+
+### Context Menu
+
+![Context Menu](docs/screenshots/screenshot-context-menu.png)
+
+*Right-click menu — Open, Find Similar, Rate, Assign Tag, Add to Playlist, Delete.*
+
+### Multi-Select & Batch Actions
+
+![Multi-select](docs/screenshots/screenshot-multiselect.png)
+
+*Multi-select with Ctrl+Click / Shift+Click. Batch action bar for tagging, playlists, and deletion.*
+
+### Settings
+
+![Settings](docs/screenshots/screenshot-settings.png)
+
+*Settings window — FFT size, hop size, dynamic range slider. Scroll down for theme, colormap, and library path.*
+
+### Keyboard Shortcuts
+
+![Shortcuts](docs/screenshots/screenshot-viewer-shortcuts.png)
+
+*Viewer keyboard shortcuts overlay (F1).*
 
 ---
 
@@ -358,6 +392,16 @@ Settings are stored in `settings.json` in the library directory:
 | OGG | `.ogg` | Vorbis codec via NAudio.Vorbis |
 
 Stereo files are automatically downmixed to mono for analysis.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [User Guide](docs/user-guide.md) | Complete usage guide: gallery, viewer, playback, AI features, tags, playlists |
+| [Architecture](docs/architecture.md) | Technical architecture: pipeline, database schema, UI design, theming |
+| [Development Guide](docs/development.md) | Building, testing, publishing, conventions, common pitfalls |
 
 ---
 
