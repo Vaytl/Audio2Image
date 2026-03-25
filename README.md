@@ -407,4 +407,4 @@ Stereo files are automatically downmixed to mono for analysis.
 
 ## License
 
-This project is provided as-is for personal and educational use.
+This project is licensed under the [MIT License](LICENSE).
