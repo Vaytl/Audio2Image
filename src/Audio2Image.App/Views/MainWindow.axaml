@@ -299,16 +299,51 @@
                             Background="{DynamicResource ToolbarBackgroundBrush}"
                             CornerRadius="6" Padding="8,6" Margin="0,0,0,4">
                         <DockPanel>
-                            <Button DockPanel.Dock="Right"
-                                    Command="{Binding BackToLibraryCommand}"
-                                    Padding="10,4" FontSize="12"
-                                    Background="Transparent"
-                                    Foreground="{DynamicResource AccentBrush}">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
-                                    <TextBlock Text="Back to library" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                <Button Command="{Binding ExportPlaylistM3uCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Export as M3U">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Share" FontSize="14"/>
+                                        <TextBlock Text="M3U" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding SaveFilterAsPlaylistCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Save as Playlist">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="Save" FontSize="14"/>
+                                        <TextBlock Text="Save as Playlist" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding RenameUserTagCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Rename tag">
+                                    <fi:SymbolIcon Symbol="Rename" FontSize="14"/>
+                                </Button>
+                                <Button Command="{Binding DeleteUserTagCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                        ToolTip.Tip="Delete tag">
+                                    <fi:SymbolIcon Symbol="Delete" FontSize="14"/>
+                                </Button>
+                                <Button Command="{Binding BackToLibraryCommand}"
+                                        Padding="10,4" FontSize="12"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource AccentBrush}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <fi:SymbolIcon Symbol="ArrowLeft" FontSize="14"/>
+                                        <TextBlock Text="Back to library" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                 <fi:SymbolIcon Symbol="Tag" FontSize="14" Foreground="{DynamicResource AccentBrush}"/>
                                 <TextBlock FontSize="13" Foreground="{DynamicResource PrimaryTextBrush}">

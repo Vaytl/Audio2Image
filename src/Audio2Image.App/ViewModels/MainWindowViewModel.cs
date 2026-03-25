@@ -59,6 +59,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private string _tagFilterName = "";
     private bool _isUserTagFilterMode;
     private string _userTagFilterName = "";
+    private long _activeUserTagId;
     private IUserTagService? _userTagService;
     private IPlaylistService? _playlistService;
     private bool _isPlaylistPanelOpen;
@@ -298,6 +299,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<SpectrogramItem, Unit> AssignUserTagCommand { get; }
     public ReactiveCommand<Unit, Unit> CreateUserTagCommand { get; }
     public ReactiveCommand<UserTag, Unit> FilterByUserTagCommand { get; }
+    public ReactiveCommand<Unit, Unit> RenameUserTagCommand { get; }
+    public ReactiveCommand<Unit, Unit> DeleteUserTagCommand { get; }
     public ReactiveCommand<SpectrogramItem, Unit> Rate1Command { get; }
     public ReactiveCommand<SpectrogramItem, Unit> Rate2Command { get; }
     public ReactiveCommand<SpectrogramItem, Unit> Rate3Command { get; }
@@ -360,6 +363,8 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         AssignUserTagCommand = ReactiveCommand.CreateFromTask<SpectrogramItem>(AssignUserTag);
         CreateUserTagCommand = ReactiveCommand.CreateFromTask(CreateUserTag);
         FilterByUserTagCommand = ReactiveCommand.Create<UserTag>(FilterByUserTag);
+        RenameUserTagCommand = ReactiveCommand.CreateFromTask(RenameCurrentUserTag);
+        DeleteUserTagCommand = ReactiveCommand.CreateFromTask(DeleteCurrentUserTag);
         Rate1Command = ReactiveCommand.Create<SpectrogramItem>(item => SetRating(item, 1));
         Rate2Command = ReactiveCommand.Create<SpectrogramItem>(item => SetRating(item, 2));
         Rate3Command = ReactiveCommand.Create<SpectrogramItem>(item => SetRating(item, 3));
@@ -1099,6 +1104,7 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         IsPlaylistMode = false;
         IsUserTagFilterMode = true;
         UserTagFilterName = tag.Name;
+        _activeUserTagId = tag.Id;
 
         var ids = new HashSet<long>(_userTagService.GetSpectrogramIdsByTag(tag.Id));
         var records = _database.GetAll().Where(r => ids.Contains(r.Id)).ToList();
@@ -1115,6 +1121,39 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
         LoadUserTagsForItems();
         IsLibraryEmpty = SpectrogramItems.Count == 0;
         StatusText = $"Tag \"{tag.Name}\": {SpectrogramItems.Count} tracks";
+    }
+
+    private async Task RenameCurrentUserTag()
+    {
+        if (_userTagService == null || !IsUserTagFilterMode || InputDialog == null) return;
+
+        var newName = await InputDialog("Rename Tag", UserTagFilterName);
+        if (string.IsNullOrWhiteSpace(newName) || newName.Trim() == UserTagFilterName) return;
+
+        try
+        {
+            _userTagService.RenameTag(_activeUserTagId, newName.Trim());
+            UserTagFilterName = newName.Trim();
+            LoadUserTags();
+            StatusText = $"Tag renamed to \"{newName.Trim()}\"";
+        }
+        catch { StatusText = "Failed to rename tag"; }
+    }
+
+    private async Task DeleteCurrentUserTag()
+    {
+        if (_userTagService == null || !IsUserTagFilterMode) return;
+
+        if (ConfirmAction != null)
+        {
+            bool confirmed = await ConfirmAction("Delete", $"Delete tag \"{UserTagFilterName}\"?\nTag will be removed from all tracks.");
+            if (!confirmed) return;
+        }
+
+        _userTagService.DeleteTag(_activeUserTagId);
+        LoadUserTags();
+        BackToLibrary();
+        StatusText = "Tag deleted";
     }
 
     // ─── Rating ──────────────────────────────────────────────────────────
@@ -1585,6 +1624,18 @@ public class MainWindowViewModel : ViewModelBase, IDisposable
     private void FilterByTag(string tagName)
     {
         if (string.IsNullOrEmpty(tagName) || _database == null) return;
+
+        // Check if this is a user tag — delegate to user tag filter
+        if (_userTagService != null)
+        {
+            var userTag = _userTagService.GetAllTags()
+                .FirstOrDefault(t => t.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase));
+            if (userTag != null)
+            {
+                FilterByUserTag(userTag);
+                return;
+            }
+        }
 
         // Exit similarity mode if active
         IsSimilarityMode = false;
